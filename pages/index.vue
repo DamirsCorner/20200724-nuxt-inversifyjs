@@ -1,69 +1,41 @@
 <template>
-  <div class="container">
+  <div>
     <div>
-      <logo />
-      <h1 class="title">
-        nuxt-inversifyjs
-      </h1>
-      <h2 class="subtitle">
-        Blog post sample
-      </h2>
-      <div class="links">
-        <a href="https://nuxtjs.org/" target="_blank" class="button--green">
-          Documentation
-        </a>
-        <a
-          href="https://github.com/nuxt/nuxt.js"
-          target="_blank"
-          class="button--grey"
-        >
-          GitHub
-        </a>
-      </div>
+      <input v-model="org" /><button @click="refresh()">Refresh</button>
+    </div>
+    <div v-for="repo in repos" :key="repo.id">
+      <a :href="repo.html_url">{{ repo.name }}</a>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
-import Logo from '~/components/Logo.vue'
+import Component from 'vue-class-component'
+import { Context } from '@nuxt/types'
+import { container, lazyInject } from '~/inversify/container'
+import { SYMBOLS } from '~/inversify/symbols'
+import { GithubRepository } from '~/repositories/GithubRepository'
+import { Repo } from '~/entities/Repo'
 
-export default Vue.extend({
-  components: {
-    Logo
+@Component({
+  asyncData: async (_context: Context) => {
+    const githubRepository = container.get<GithubRepository>(
+      SYMBOLS.GithubRepository
+    )
+    const repos = await githubRepository.getOrgRepos('damirscorner')
+    return { repos }
   }
 })
+export default class IndexPage extends Vue {
+  repos: Repo[] = []
+  org: string = ''
+
+  @lazyInject(SYMBOLS.GithubRepository)
+  private githubRepository!: GithubRepository
+
+  async refresh(): Promise<void> {
+    this.repos = await this.githubRepository.getOrgRepos(this.org)
+  }
+}
 </script>
-
-<style>
-.container {
-  margin: 0 auto;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-.title {
-  font-family: 'Quicksand', 'Source Sans Pro', -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  display: block;
-  font-weight: 300;
-  font-size: 100px;
-  color: #35495e;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-weight: 300;
-  font-size: 42px;
-  color: #526488;
-  word-spacing: 5px;
-  padding-bottom: 15px;
-}
-
-.links {
-  padding-top: 15px;
-}
-</style>
